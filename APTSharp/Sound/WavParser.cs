@@ -21,13 +21,13 @@ namespace APTSharp.Sound
 
             public float[] GetAsFloat32()
             {
-                if (Mono.Length % 4 != 0)
-                    throw new Exception("Can't convert to to float32");
-                float[] retArray = new float[Mono.Length / 4];
+                if (Mono.Length % 2 != 0)
+                    throw new Exception("Can't convert to to float32 array");
+                float[] retArray = new float[Mono.Length / 2];
                 int j = 0;
 
-                for (int i = 0; i < Mono.Length; i += 4)
-                    retArray[j++] = (float)(Mono[i + 3] << 24 | Mono[i + 2] << 16 | Mono[i + 1] << 8 | Mono[i]);
+                for (int i = 0; i < Mono.Length; i += 2)
+                    retArray[j++] = (float)(Mono[i + 1] << 8 | Mono[i]) / 0x8000;
                 return (retArray);
             }
         }
@@ -46,7 +46,7 @@ namespace APTSharp.Sound
             returnData.ChannelsCount = (short)(rawWavData[CHANNEL_COUNT_OFFSET + 1] << 8 | rawWavData[CHANNEL_COUNT_OFFSET]);
             returnData.Frequency = (int)(rawWavData[FREQUENCY_OFFSET + 3] << 24 | rawWavData[FREQUENCY_OFFSET + 2] << 16 | rawWavData[FREQUENCY_OFFSET + 1] << 8 | rawWavData[FREQUENCY_OFFSET]);
 
-            while (i < rawWavData.Length && rawWavData[i] == BLOCK_HEADER[0] && rawWavData[i + 1] == BLOCK_HEADER[1] && rawWavData[i + 2] == BLOCK_HEADER[2] && rawWavData[i + 3] == BLOCK_HEADER[3])
+            while (i < rawWavData.Length && !(rawWavData[i] == BLOCK_HEADER[0] && rawWavData[i + 1] == BLOCK_HEADER[1] && rawWavData[i + 2] == BLOCK_HEADER[2] && rawWavData[i + 3] == BLOCK_HEADER[3]))
                 i++;
             if (i >= rawWavData.Length)
                 throw new Exception("Can't find WAV Data block");
