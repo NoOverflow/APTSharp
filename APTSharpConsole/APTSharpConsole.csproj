@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Example - Copier\**" />
+    <EmbeddedResource Remove="Example - Copier\**" />
+    <None Remove="Example - Copier\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\APTSharp\APTSharp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Example\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Example\noaa.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
