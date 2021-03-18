@@ -5,6 +5,10 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Example - Copier\**" />
     <EmbeddedResource Remove="Example - Copier\**" />
@@ -16,11 +20,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Example\" />
+    <PackageReference Include="NAudio" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="Example\noaa.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Example\noaa19.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

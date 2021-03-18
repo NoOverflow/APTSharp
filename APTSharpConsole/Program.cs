@@ -1,4 +1,6 @@
-﻿using System;
+﻿using APTSharp;
+using NAudio.Wave;
+using System;
 using static APTSharp.Sound.WavParser;
 
 namespace APTSharpConsole
@@ -7,11 +9,16 @@ namespace APTSharpConsole
     {
         static void Main(string[] args)
         {
-            WavData soundData = APTSharp.Sound.WavParser.ParseWav("Example/noaa.wav");
-            float[] rawFloatData = soundData.GetAsFloat32();
+            var ret = APTSharp.APT.ParseAPTFile("Example/noaa19.wav");
 
-            Console.WriteLine("Wav Channels : {0}", soundData.ChannelsCount);
-            Console.WriteLine("Wav Frequency : {0}", soundData.Frequency);
+            AudioFileReader reader = new AudioFileReader("Example/noaa.wav");
+            ISampleProvider isp = reader.ToSampleProvider();
+            float[] buffer = new float[reader.Length / 2];
+            isp.Read(buffer, 0, buffer.Length);
+
+
+
+
             Console.ReadLine();
         }
     }
