@@ -9,19 +9,9 @@ namespace APTSharpConsole
     {
         static void Main(string[] args)
         {
-            var ret = APTSharp.APT.ParseAPTFile("Example/noaa18.wav");
+            var ret = APTSharp.APT.ParseAPTFile("Example/noaa19.wav");
 
             ret.ImageRes.Save("test.bmp");
-
-            AudioFileReader reader = new AudioFileReader("Example/noaa18.wav");
-            ISampleProvider isp = reader.ToSampleProvider();
-            float[] buffer = new float[reader.Length / 2];
-            isp.Read(buffer, 0, buffer.Length);
-
-
-
-
-            Console.ReadLine();
         }
     }
 }

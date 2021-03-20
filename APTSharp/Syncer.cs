@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Text;
 using static APTSharp.Utils;
 
@@ -42,7 +43,7 @@ namespace APTSharp
         /// <summary>
         /// The minimum fidelity in % for a sync pattern to be considered valid
         /// </summary>
-        public const float MIN_FIDELITY = 0.875f;
+        public const float MIN_FIDELITY = 0.87f;
 
         public float averageLevel = 0.5f;
 
@@ -61,6 +62,11 @@ namespace APTSharp
         public delegate void OnSyncBDelegate(float sample);
         public event OnSyncBDelegate OnSyncB = null;
 
+        private Point SupposedCurrentFramePosition = new Point();
+
+        // private (long index, float value) SyncABestShot = (-1, 0.0f);
+        // private (long index, float value) SyncBBestShot = (-1, 0.0f);
+
         public Syncer(float[] samples)
         {
             this.Samples = samples;
@@ -78,20 +84,29 @@ namespace APTSharp
 
             for (long i = 0; i < Samples.Length; i++)
             {
-                bool fidA = MatchSyncA(Samples, i) > MIN_FIDELITY;
-                bool fidB = MatchSyncB(Samples, i) > MIN_FIDELITY;
+                float fidA = MatchSyncA(Samples, i);
+                float fidB = MatchSyncB(Samples, i);
+                bool isA = fidA > ((SupposedCurrentFramePosition.Y > 119 && SupposedCurrentFramePosition.Y < 122) ? MIN_FIDELITY - 0.2f : MIN_FIDELITY);
+                bool isB = fidB > MIN_FIDELITY;
 
                 currentSample = StateStack[Pos];    
                 StateStack[Pos] = Samples[i];
                 averageLevel = 0.25f * Samples[i] + averageLevel * 0.75f;
                 Pos = (Pos + 1) % SYNC_A.Length;
-                if (fidA) {
-                    Console.WriteLine("Sync A Fid:{0}", fidA);
+                if (isA) {
+                    SupposedCurrentFramePosition.Y = 0;
+                    SupposedCurrentFramePosition.X = 0;
                     OnSyncA?.Invoke(currentSample);
-                } else if (fidB) {
-                    Console.WriteLine("Sync B Fid:{0}", fidA);
+                } else if (isB) {
+                    SupposedCurrentFramePosition.X = 2048 / 2;
                     OnSyncB?.Invoke(currentSample);
                 } else {
+                    SupposedCurrentFramePosition.X++;
+                    if (SupposedCurrentFramePosition.X >= 2048)
+                    {
+                        SupposedCurrentFramePosition.X = 0;
+                        SupposedCurrentFramePosition.Y++;
+                    }
                     OnSample?.Invoke(currentSample);
                 }
             }
