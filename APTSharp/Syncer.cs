@@ -64,9 +64,6 @@ namespace APTSharp
 
         private Point SupposedCurrentFramePosition = new Point();
 
-        // private (long index, float value) SyncABestShot = (-1, 0.0f);
-        // private (long index, float value) SyncBBestShot = (-1, 0.0f);
-
         public Syncer(float[] samples)
         {
             this.Samples = samples;
@@ -77,9 +74,19 @@ namespace APTSharp
             }
         }
 
+        private void SendSampleEvent(float currentSample)
+        {
+            SupposedCurrentFramePosition.X++;
+            if (SupposedCurrentFramePosition.X >= 2048)
+            {
+                SupposedCurrentFramePosition.X = 0;
+                SupposedCurrentFramePosition.Y++;
+            }
+            OnSample?.Invoke(currentSample);
+        }
+
         public void Synchronize()
         {
-            float fidelity = 0.0f;
             float currentSample = 0.0f;
 
             for (long i = 0; i < Samples.Length; i++)
@@ -92,22 +99,18 @@ namespace APTSharp
                 currentSample = StateStack[Pos];    
                 StateStack[Pos] = Samples[i];
                 averageLevel = 0.25f * Samples[i] + averageLevel * 0.75f;
+
                 Pos = (Pos + 1) % SYNC_A.Length;
                 if (isA) {
                     SupposedCurrentFramePosition.Y = 0;
                     SupposedCurrentFramePosition.X = 0;
+                    
                     OnSyncA?.Invoke(currentSample);
                 } else if (isB) {
                     SupposedCurrentFramePosition.X = 2048 / 2;
                     OnSyncB?.Invoke(currentSample);
                 } else {
-                    SupposedCurrentFramePosition.X++;
-                    if (SupposedCurrentFramePosition.X >= 2048)
-                    {
-                        SupposedCurrentFramePosition.X = 0;
-                        SupposedCurrentFramePosition.Y++;
-                    }
-                    OnSample?.Invoke(currentSample);
+                    SendSampleEvent(currentSample);
                 }
             }
         }

@@ -27,6 +27,9 @@
     <None Update="Example\noaa.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Example\noaa15.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Example\noaa18.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

@@ -9,9 +9,10 @@ namespace APTSharpConsole
     {
         static void Main(string[] args)
         {
-            var ret = APTSharp.APT.ParseAPTFile("Example/noaa19.wav");
+            var ret = APTSharp.APT.ParseAPTFile("Example/noaa15.wav");
 
-            ret.ImageRes.Save("test.bmp");
+            ret.ImageRes.ImageA.Save("testA.bmp");
+            ret.ImageRes.ImageB.Save("testB.bmp");
         }
     }
 }

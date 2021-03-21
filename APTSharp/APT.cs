@@ -22,7 +22,13 @@ namespace APTSharp
         /// </summary>
         public long TotalSeconds;
 
-        public Bitmap ImageRes; // temporary
+        public APTFrame ImageRes; // temporary
+    }
+
+    public struct APTFrame
+    {
+        public Bitmap ImageA;
+        public Bitmap ImageB;
     }
 
     public class APT
@@ -70,21 +76,30 @@ namespace APTSharp
             syncer.OnSyncB += Syncer_OnSyncB;
             syncer.OnSample += Syncer_OnSample;
             syncer.Synchronize();
-            ret.ImageRes = new Bitmap(2080, CurrentPoint.Y);
+            ret.ImageRes.ImageA = new Bitmap(1040, CurrentPoint.Y);
+            ret.ImageRes.ImageB = new Bitmap(1040, CurrentPoint.Y);
             for (int y = 0; y < CurrentPoint.Y; y++)
                 for (int x = 0; x < 2080; x++)
-                    ret.ImageRes.SetPixel(x, y, CurrentImage.GetPixel(x, y));
+                {
+                    if (x < 1040)
+                        ret.ImageRes.ImageA.SetPixel(x, y, CurrentImage.GetPixel(x, y));
+                    else
+                        ret.ImageRes.ImageB.SetPixel(x - 1040, y, CurrentImage.GetPixel(x, y));            
+                }
+            // SUtils.ModifyBitmapContrast(ref ret.ImageRes.ImageA, 20.0f);
+            // Utils.ModifyBitmapContrast(ref ret.ImageRes.ImageB, 20.0f);
             // ret.ImageRes.RotateFlip(RotateFlipType.Rotate180FlipNone);
             return (ret);
         }
 
         private static void Syncer_OnSample(float sample)
         {
-            int sampleValue = 0;
+            byte sampleValue = 0;
 
             MaxSampleValue = Math.Max(MaxSampleValue, sample);
             MaxSampleValue = MaxSampleValue == 0 ? 0.1f : MaxSampleValue;
-            sampleValue = (int)(sample / MaxSampleValue * 255.0f);
+            sampleValue = (byte)((byte)(sample / MaxSampleValue * 255.0f));
+            sampleValue = (byte)(sampleValue > 255 ? 255 : sampleValue);
             CurrentImage.SetPixel(CurrentPoint.X, CurrentPoint.Y, Color.FromArgb(sampleValue, sampleValue, sampleValue));
             CurrentPoint.X++;
             if (CurrentPoint.X >= 2080)
@@ -100,7 +115,8 @@ namespace APTSharp
 
             MaxSampleValue = Math.Max(MaxSampleValue, sample);
             MaxSampleValue = MaxSampleValue == 0 ? 0.1f : MaxSampleValue;
-            sampleValue = (int)(sample / MaxSampleValue * 255.0f);
+            sampleValue = (byte)((byte)(sample / MaxSampleValue * 255.0f) + 40);
+            sampleValue = (byte)(sampleValue > 255 ? 255 : sampleValue);
 
             // We are going to go the middle of the line, so fill with the remaining sample
             // This is useful for instrumental (Wedges) values, although not ideal cause this shouldn't happen
@@ -120,8 +136,6 @@ namespace APTSharp
         {
             // A Sync A represents the beginning of a line, so we go there
             CurrentPoint.X = 0;
-            CurrentImage.SetPixel(CurrentPoint.X, CurrentPoint.Y, Color.FromArgb(0, 255, 0));
-            CurrentPoint.X++;
         }
     }
 }
