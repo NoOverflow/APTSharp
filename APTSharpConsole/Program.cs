@@ -1,7 +1,6 @@
 ﻿using APTSharp;
 using NAudio.Wave;
 using System;
-using static APTSharp.Sound.WavParser;
 
 namespace APTSharpConsole
 {
@@ -9,10 +8,11 @@ namespace APTSharpConsole
     {
         static void Main(string[] args)
         {
-            var ret = APTSharp.APT.ParseAPTFile("Example/noaa15.wav");
+            var ret = new APTSharp.APT().Parse("Example/noaa15.wav");
 
-            ret.ImageRes.ImageA.Save("testA.bmp");
-            ret.ImageRes.ImageB.Save("testB.bmp");
+            ret.FullImage.Save("testAB.bmp");
+            ret.ImageA.Save("testA.bmp");
+            ret.ImageB.Save("testB.bmp");
         }
     }
 }

@@ -1,0 +1,35 @@
+
+Godlike document : https://noaasis.noaa.gov/NOAASIS/pubs/Users_Guide-Building_Receive_Stations_March_2009.pdf
+
+[Image Data => This should get ]
+
+-> Get WAV Data
+-> Demodulate data (See which method, easiest would be sqrt(pow(x,2)))
+-> Filter values (FIR Filter, how do we get the coeffs ?) (Use dsp library ?)
+-> Normalize using lowest and highest value (overall) (Get mean value)
+-> Get first synchro value using SYNC(A or B, B better ?) pattern
+	-> Is one synchro value enough for the whole process ?
+	-> Do we synchronise on downsampled / treated values or not ?
+-> Resample values to get 4160 Hz (2080px per line, 2 lines per second)
+	-> Do we resample line per line or the whole data array
+-> Treat line, get color value, add it to image
+-> Sync again, get start offset, treat line again
+-> Despeckle image
+
+(TODO: Add additionnal treatments)
+
+[Telemetry data]
+
+-> Extract A and B Wedges (Starting at frame_len - 45)
+
+	[Temperature]
+		-> Use wedge 14 to get Patch temperature (The satellite heats a patch up to 105K)
+			K = Pixel value * 10 (8 -> 10 bits) + 90.113
+		-> Use backscan (Wedge 15), to get black body temperature
+		-> Use wedge 10-13 to average black body Temperature (Using TPRT Formula page 85)
+		-> Get radiance for this averaged temperature
+		-> Check and compare from lookup table (XI-6 of pdf manual)
+
+[Questions, do we support one frequency or not]
+Pros -> We can be more precise with sync values
+Cons -> We only support one frequency
