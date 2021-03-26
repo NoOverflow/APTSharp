@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30621.155
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APTSharpOld", "APTSharp\APTSharpOld.csproj", "{5214A3EE-4FF6-4820-8724-144BCC5962C9}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APTSharpConsole", "APTSharpConsole\APTSharpConsole.csproj", "{660D28CC-80E2-4C14-BD49-4AAAF3CE30E4}"
 	ProjectSection(ProjectDependencies) = postProject
 		{0B9E7929-5C09-4EC9-989E-262E28B622F8} = {0B9E7929-5C09-4EC9-989E-262E28B622F8}
@@ -18,10 +16,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{5214A3EE-4FF6-4820-8724-144BCC5962C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5214A3EE-4FF6-4820-8724-144BCC5962C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5214A3EE-4FF6-4820-8724-144BCC5962C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5214A3EE-4FF6-4820-8724-144BCC5962C9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{660D28CC-80E2-4C14-BD49-4AAAF3CE30E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{660D28CC-80E2-4C14-BD49-4AAAF3CE30E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{660D28CC-80E2-4C14-BD49-4AAAF3CE30E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
