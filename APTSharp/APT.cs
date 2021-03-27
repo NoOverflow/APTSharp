@@ -48,7 +48,7 @@ namespace APTSharp
             APTData ret = new APTData();
             var wavData = ReadWAVData(path);
             float[] samples = wavData.samples;
-            Bitmap fullImage = new Bitmap(2080, (int)(Math.Floor(samples.Length / (float)(SAMPLERATE / 2))));
+            Bitmap fullImage = new Bitmap(2080, (int)(Math.Floor(samples.Length / (float)(SAMPLERATE / 2)) - 1));
             byte grayscaleValue = 0;
 
             foreach (var pair in TreatmentUnits)
@@ -79,20 +79,16 @@ namespace APTSharp
             ret.FullImage = fullImage;
             ret.ImageA = new Bitmap(fullImage.Width / 2, fullImage.Height);
             ret.ImageB = new Bitmap(fullImage.Width / 2, fullImage.Height);
-            for (int y = 0; y < fullImage.Height; y++) 
+            for (int y = 0; y < fullImage.Height; y++)
+            {
                 for (int x = 0; x < 1040; x++)
                 {
-                    if (x == 1040 - 46 || x == 2080 - 46)
-                    {
-                        ret.ImageA.SetPixel(x, y, Color.Purple);
-                        ret.ImageB.SetPixel(x, y, Color.Purple);
-                    } 
-                    else
-                    {
-                        ret.ImageA.SetPixel(x, y, fullImage.GetPixel(x, y));
-                        ret.ImageB.SetPixel(x, y, fullImage.GetPixel(x + 1040, y));
-                    }
+                    ret.ImageA.SetPixel(x, y, fullImage.GetPixel(x, y));
+                    ret.ImageB.SetPixel(x, y, fullImage.GetPixel(x + 1040, y));
                 }
+            }
+            // Reading telemetry will enhance the image quality, this is because it needs to get precise values to get temperature data
+            new TelemetryReader().ReadTelemetry(ref ret.ImageA);
             return ret;
         }
     }
