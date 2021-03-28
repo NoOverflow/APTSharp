@@ -21,7 +21,7 @@ namespace APTSharp
 
     public class APT
     {
-        public const int SAMPLERATE = 11025;
+        public static int Samplerate = 11025;
 
         /// <summary>
         /// Treatment units, these will be executed in order with the arguments provided (This process is described in 'Process.txt').
@@ -29,7 +29,7 @@ namespace APTSharp
         private static (ITreatmentUnit unit, dynamic args)[] TreatmentUnits =
         {
             (new SquareRootDemodulator(), null),
-            (new FIRLowFilter(), new dynamic[] { SAMPLERATE, 1200, 50}),
+            (new FIRLowFilter(), new dynamic[] { Samplerate, 1200, 50}),
             (new Normalizer(), null),
         };
 
@@ -40,6 +40,8 @@ namespace APTSharp
             float[] buffer = new float[reader.Length / 4];
             
             isp.Read(buffer, 0, buffer.Length);
+            
+            Samplerate = reader.WaveFormat.SampleRate;
             return (buffer, (reader.TotalTime.TotalSeconds + 1));
         }
 
@@ -48,31 +50,31 @@ namespace APTSharp
             APTData ret = new APTData();
             var wavData = ReadWAVData(path);
             float[] samples = wavData.samples;
-            Bitmap fullImage = new Bitmap(2080, (int)(Math.Floor(samples.Length / (float)(SAMPLERATE / 2)) - 1));
+            Bitmap fullImage = new Bitmap(2080, (int)(Math.Floor(samples.Length / (float)(Samplerate / 2)) - 1));
             byte grayscaleValue = 0;
 
             foreach (var pair in TreatmentUnits)
                 samples = pair.unit.Treat(ref samples, pair.args);
-            var syncResult = Syncer.GetNextSync(ref samples, 0, SAMPLERATE);
-            float[] lineData = new float[SAMPLERATE / 2 + 1];
+            var syncResult = Syncer.GetNextSync(ref samples, 0, Samplerate * 10);
+            float[] lineData = new float[Samplerate / 2 + 1];
             Downsampler downsampler = new Downsampler();
             FIRLowFilter fIRLowFilter = new FIRLowFilter();
             int syncHolder = syncResult.index;
 
             for (int yLine = 0; yLine < fullImage.Height; yLine++)
             {
-                if (syncHolder + SAMPLERATE / 2 + 1 >= samples.Length)
+                if (syncHolder + Samplerate / 2 + 1 >= samples.Length)
                     break;
-                Array.Copy(samples, syncHolder, lineData, 0, SAMPLERATE / 2 + 1); 
-                var downsampledData = downsampler.Treat(ref lineData, new dynamic[] { SAMPLERATE / (float)4160 });
+                Array.Copy(samples, syncHolder, lineData, 0, Samplerate / 2 + 1); 
+                var downsampledData = downsampler.Treat(ref lineData, new dynamic[] { Samplerate / (float)4160 });
                 for (int x = 0; x < fullImage.Width; x++)
                 {
                     grayscaleValue = (byte)(downsampledData[x] * 255.0f);
                     fullImage.SetPixel(x, yLine, Color.FromArgb(grayscaleValue, grayscaleValue, grayscaleValue));
                 }
-                syncResult = Syncer.GetNextSync(ref samples, syncHolder + (SAMPLERATE / 2) - 20, 40);
+                syncResult = Syncer.GetNextSync(ref samples, syncHolder + (Samplerate / 2) - 20, 40);
                 if (syncResult.index < 0)
-                    syncHolder += SAMPLERATE / 2;
+                    syncHolder += Samplerate / 2;
                 else
                     syncHolder = syncResult.index;
             }
