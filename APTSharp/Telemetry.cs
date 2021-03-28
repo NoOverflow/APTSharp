@@ -182,7 +182,7 @@ namespace APTSharp
             byte supposedWhite = 0;
             byte supposedBlack = 255;
 
-            for (int y = 0; y < frame.Height; y++)
+            for (int y = 0; y < frame.Height - 1; y++)
             {
                 int sum = 0;
                 byte average = 0;

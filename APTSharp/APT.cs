@@ -55,7 +55,7 @@ namespace APTSharp
 
             foreach (var pair in TreatmentUnits)
                 samples = pair.unit.Treat(ref samples, pair.args);
-            var syncResult = Syncer.GetNextSync(ref samples, 0, Samplerate * 10);
+            var syncResult = Syncer.GetNextSync(ref samples, 0, Samplerate * 2);
             float[] lineData = new float[Samplerate / 2 + 1];
             Downsampler downsampler = new Downsampler();
             FIRLowFilter fIRLowFilter = new FIRLowFilter();
