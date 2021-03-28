@@ -9,7 +9,6 @@ namespace APTSharp.Enhance
     {
         public static void ColorCorrectBitmap(ref Bitmap image, byte trueWhite, byte trueBlack)
         {
-            return;
             for (int y = 0; y < image.Height; y++)
             {
                 for (int x = 0; x < image.Width; x++)
