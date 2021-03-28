@@ -8,22 +8,23 @@ namespace APTSharp
 {
     public enum WedgeId
     {
-        WMI1, 
-        WMI2,
-        WMI3,
-        WMI4,
-        WMI5,
-        WMI6,
-        WMI7,
-        WMIW, // Wedge Modulation Index White (Full white) 
-        WMIZ, // Wedge Modulation Index Zero (Full black) 
-        TT1,  // Thermistor 1 Temperature
-        TT2,  // Thermistor 1 Temperature
-        TT3,  // Thermistor 1 Temperature
-        TT4,  // Thermistor 1 Temperature
-        PT,   // Patch temp 
-        BS,   // Back scan
-        CID,  // Channel Identifier
+        UNKNOWN = -1,
+        WMI1 = 0,
+        WMI2 = 1,
+        WMI3 = 2,
+        WMI4 = 3,
+        WMI5 = 4,
+        WMI6 = 5,
+        WMI7 = 6,
+        WMIW = 7, // Wedge Modulation Index White (Full white) 
+        WMIZ = 8, // Wedge Modulation Index Zero (Full black) 
+        TT1 = 9,  // Thermistor 1 Temperature
+        TT2 = 10,  // Thermistor 1 Temperature
+        TT3 = 11,  // Thermistor 1 Temperature
+        TT4 = 12,  // Thermistor 1 Temperature
+        PT = 13,   // Patch temp 
+        BS = 14,   // Back scan
+        CID = 15,  // Channel Identifier
     }
 
     public enum SatelliteId
@@ -32,8 +33,6 @@ namespace APTSharp
         NOAA_18,
         NOAA_19
     }
-
-    
 
     public struct TelemetryWedge
     {
@@ -48,6 +47,11 @@ namespace APTSharp
         /// A telemetry line width
         /// </summary>
         public const int TELEMETRY_WIDTH = 45;
+
+        /// <summary>
+        /// A telemetry wedge height
+        /// </summary>
+        public const int TELEMETRY_HEIGHT = 8;
 
         public static readonly Dictionary<SatelliteId, float[][]> PTR_COEFFS = new Dictionary<SatelliteId, float[][]>()
         {
@@ -166,6 +170,7 @@ namespace APTSharp
             }
         };
 
+        private WedgeId CurrentWedge = WedgeId.UNKNOWN;
         private double GetBlackBodyTemperature(byte sensorValue, float[] coeffs)
         {
             int corrected10bSV = sensorValue << 2;
@@ -177,12 +182,50 @@ namespace APTSharp
                 (coeffs[4] * Math.Pow(corrected10bSV, 4));
         }
 
+        private (WedgeId wai, int y) FindReferencePoint(ref Bitmap frame)
+        {
+            bool averageSet = false;
+            byte oldAverage = 0;
+
+            for (int y = 0; y < frame.Height; y++)
+            {
+                int sum = 0;
+                byte average = 0;
+
+                for (int x = frame.Width - 46; x < frame.Width - 1; x++)
+                {
+                    sum += frame.GetPixel(x, y).R;
+                }
+                average = (byte)(sum / TELEMETRY_WIDTH);
+                if (!averageSet)
+                {
+                    oldAverage = average;
+                    averageSet = true;
+                }
+                // Console.WriteLine("Average line {0}: {1}", y, average);
+                if (oldAverage - average > 120)
+                    return (WedgeId.WMIZ, y);
+                oldAverage = average;
+            }
+            throw new Exception("No reference point could be found. Can't get telemetry");
+        }
+        
+        /// <summary>
+        /// This telemetry reader assumes that the satellite didn't change settings over all recorded frames
+        /// </summary>
+        /// <param name="frame"></param>
         public void ReadTelemetry(ref Bitmap frame)
         {
             byte supposedWhite = 0;
             byte supposedBlack = 255;
+            var reference = FindReferencePoint(ref frame);
 
-            for (int y = 0; y < frame.Height - 1; y++)
+            // How many wedges up
+            int upwedges = (reference.y - 1) / TELEMETRY_HEIGHT;
+            int yOffset = (reference.y - 1) % TELEMETRY_HEIGHT;
+            int currentWedgeLine = 0;
+
+            for (int y = yOffset; y < frame.Height - 1; y++)
             {
                 int sum = 0;
                 byte average = 0;
@@ -196,7 +239,11 @@ namespace APTSharp
                     supposedWhite = average;
                 if (average < supposedBlack)
                     supposedBlack = average;
-                Console.WriteLine("Average line {0}: {1}", y, average);
+                if (++currentWedgeLine % TELEMETRY_HEIGHT == 0)
+                {
+                    Console.WriteLine("New wedge starts at {0}", y + 1);
+                    currentWedgeLine = 0;
+                }
             }
             Console.WriteLine("------------");
             Console.WriteLine("Supposed white {0}", supposedWhite);
