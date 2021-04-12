@@ -90,7 +90,7 @@ namespace APTSharp
                 }
             }
             // Reading telemetry will enhance the image quality, this is because it needs to get precise values to get temperature data
-            new TelemetryReader().ReadTelemetry(ref ret.ImageA);
+            new TelemetryReader().ReadTelemetry(ref ret.ImageB);
             return ret;
         }
     }
