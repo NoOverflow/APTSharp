@@ -11,8 +11,8 @@ namespace APTSharpConsole
             var ret = new APTSharp.APT().Parse("Example/noaa15.wav");
 
             ret.FullImage.Save("testAB.bmp");
-            ret.ImageA.Save("testA.bmp");
-            ret.ImageB.Save("testB.bmp");
+            ret.FrameB.frame.Save("testA.bmp");
+            ret.FrameB.frame.Save("testB.bmp");
         }
     }
 }

@@ -14,8 +14,8 @@ namespace APTSharp
 {
     public struct APTData
     {
-        public (Bitmap, TelemetryFrame) FrameA;
-        public (Bitmap, TelemetryFrame) FrameB;
+        public (Bitmap frame, TelemetryFrame telemetry) FrameA;
+        public (Bitmap frame, TelemetryFrame telemetry) FrameB;
 
         public Bitmap FullImage;
     }
@@ -80,18 +80,18 @@ namespace APTSharp
                     syncHolder = syncResult.index;
             }
             ret.FullImage = fullImage;
-            ret.ImageA = new Bitmap(fullImage.Width / 2, fullImage.Height);
-            ret.ImageB = new Bitmap(fullImage.Width / 2, fullImage.Height);
+            ret.FrameA.frame = new Bitmap(fullImage.Width / 2, fullImage.Height);
+            ret.FrameB.frame = new Bitmap(fullImage.Width / 2, fullImage.Height);
             for (int y = 0; y < fullImage.Height; y++)
             {
                 for (int x = 0; x < 1040; x++)
                 {
-                    ret.ImageA.SetPixel(x, y, fullImage.GetPixel(x, y));
-                    ret.ImageB.SetPixel(x, y, fullImage.GetPixel(x + 1040, y));
+                    ret.FrameA.frame.SetPixel(x, y, fullImage.GetPixel(x, y));
+                    ret.FrameB.frame.SetPixel(x, y, fullImage.GetPixel(x + 1040, y));
                 }
             }
             // Reading telemetry will enhance the image quality, this is because it needs to get precise values to get temperature data
-            new TelemetryReader().ReadTelemetry(ref ret.ImageB);
+            ret.FrameB.telemetry = new TelemetryReader().ReadTelemetry(ref ret.FrameB.frame);
             return ret;
         }
     }
