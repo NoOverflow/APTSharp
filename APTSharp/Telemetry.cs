@@ -55,12 +55,22 @@ namespace APTSharp
         /// <summary>
         /// The channel Id, used to determine the instrument used
         /// </summary>
-        ChannelId ChId;
+        public ChannelId ChId;
 
         /// <summary>
         /// The patch temperature measured in Kelvin
         /// </summary>
-        double PatchTemperature;
+        public double PatchTemperature;
+
+        /// <summary>
+        /// The temperature for each pixel measured in Kelvin
+        /// </summary>
+        public double[] Temperatures;
+
+        /// <summary>
+        /// The predicted or given satellite
+        /// </summary>
+        public SatelliteId Satellite;
     }
 
     public class TelemetryReader
@@ -74,123 +84,6 @@ namespace APTSharp
         /// A telemetry wedge height
         /// </summary>
         public const int TELEMETRY_HEIGHT = 8;
-
-        public static readonly Dictionary<SatelliteId, float[][]> PTR_COEFFS = new Dictionary<SatelliteId, float[][]>()
-        {
-            {
-                SatelliteId.NOAA_19,
-                new float[][] {
-                    new float[]
-                    {
-                        276.6067f,
-                        0.051111f,
-                        1.405783e-06f,
-                        0.0f,
-                        0.0f
-                    },
-                    new float[]
-                    {
-                        276.6119f,
-                        0.051090f,
-                        1496037e-06f,
-                        0.0f,
-                        0.0f
-                    },
-                    new float[]
-                    {
-                        276.6311f,
-                        0.051033f,
-                        1.496990E-06f,
-                        0.0f,
-                        0.0f
-                    },
-                    new float[]
-                    {
-                        276.6268f,
-                        0.051058f,
-                        1.493110e-06f,
-                        0.0f,
-                        0.0f
-                    }
-                }
-            },
-            {
-                SatelliteId.NOAA_18,
-                new float[][]
-                {
-                    new float[]
-                    {
-                        276.601f,
-                        0.05090f,
-                        1.657e-06f,
-                        0.0f,
-                        0.0f
-                    },
-                    new float[]
-                    {
-                        276.683f,
-                        0.05101f,
-                        1.482e-06f,
-                        0.0f,
-                        0.0f
-                    },
-                    new float[]
-                    {
-                        276.565f,
-                        0.05117f,
-                        1.313e-06f,
-                        0.0f,
-                        0.0f
-                    },
-                    new float[]
-                    {
-                        276.615f,
-                        0.05103f,
-                        1.4841e-06f,
-                        0.0f,
-                        0.0f
-                    }
-                }
-            },
-            {
-                SatelliteId.NOAA_15,
-                new float[][]
-                {
-                    new float[]
-                    {
-                        276.60157f,
-                        0.051045f,
-                        1.36328E-06f,
-                        0.0f,
-                        0.0f
-                    },
-                    new float[]
-                    {
-                        276.62531f,
-                        0.050909f,
-                        1.47266e-06f,
-                        0.0f,
-                        0.0f
-                    },
-                    new float[]
-                    {
-                        276.67413f,
-                        0.050907f,
-                        1.47656E-06f,
-                        0.0f,
-                        0.0f
-                    },
-                    new float[]
-                    {
-                        276.59258f,
-                        0.050966f,
-                        1.47656e-06f,
-                        0.0f,
-                        0.0f
-                    }
-                }
-            }
-        };
 
         public static readonly Dictionary<ChannelId, byte> CHANNEL_ID_TO_DIGV = new Dictionary<ChannelId, byte>()
         {
@@ -231,10 +124,12 @@ namespace APTSharp
             return ret;
         }
 
-        private double GetBlackBodyTemperature(byte sensorValue, float[] coeffs)
+        private double ComputeBlackBodyTemperature(byte sensorValue, float[] coeffs)
         {
+            // The value is shifted by two as coefficients are given for 10 bits HRPT telemetry
             int corrected10bSV = sensorValue << 2;
 
+            // Equation given in section 7.1.2.4 of the NOAA KLM User guide
             return coeffs[0] +
                 (coeffs[1] * corrected10bSV) +
                 (coeffs[2] * Math.Pow(corrected10bSV, 2)) +
@@ -242,6 +137,62 @@ namespace APTSharp
                 (coeffs[4] * Math.Pow(corrected10bSV, 4));
         }
 
+
+        // Plank consts
+        private const decimal C1 = 1.1910427E-5M; // mW/(m²-sr-cme-4)
+        private const decimal C2 = 1.4387752M; // cm-K
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id">The satellite from which the count is coming from</param>
+        /// <param name="cid">The channel ID of the instrument used</param>
+        /// <param name="sensorValue">The raw byte value</param>
+        /// <param name="bbt">The black body temperature coming from the PRTs</param>
+        /// <param name="cs">The average space count</param>
+        /// <param name="cbb">The average black body count</param>
+        /// <returns></returns>
+        private double ComputeTemperature(SatelliteId id, ChannelId cid, byte sensorValue, double bbt, double cs, double cbb)
+        {
+            double ce = ((sensorValue - 6.25f) / 0.8198f) * 4;
+
+            // Not fucking safe
+            cs = ((cs - 6.25f) / 0.8198f) * 4;
+            // Not fucking safe
+            cbb = ((cbb - 6.25f) / 0.8198f) * 4;
+
+            // TODO WTF IS THIS, Error could come from here ig 
+            double nue = 927.0246f; // Absolutely not fucking safe
+            double nuc = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][0]; // Safe ?
+            double a = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][1]; // Safe ?
+            double b = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][2]; // Safe ?
+            double ns = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][3];    // Safe ?
+
+            // Safe ?
+            double efbbt = a + b * bbt;
+
+            
+            double nbb = ((double)C1 * Math.Pow(nue, 3)) / (Math.Exp((double)C2 * nuc / efbbt) - 1);
+
+            // Problem is around here ig nigga tf
+            double nlin = ns + (nbb - ns) * ((cs - ce) / (cs - cbb));
+
+            double ncor = SatelliteConfigs.Configs[id].NL_RAD_CORR_COEFFS[cid][0] + 
+                          SatelliteConfigs.Configs[id].NL_RAD_CORR_COEFFS[cid][1] * nlin + 
+                          SatelliteConfigs.Configs[id].NL_RAD_CORR_COEFFS[cid][2] * Math.Pow(nlin, 2);
+            double ne = nlin + ncor;
+
+            double emte = ((double)C2 * nuc) / (Math.Log(1 + ((double)C1 * Math.Pow(nuc, 3) / ne)));
+            double te = (emte - a) / b;
+
+            return te;
+        }
+
+        /// <summary>
+        /// Find a reference point to locate wedge starts
+        /// </summary>
+        /// <param name="frame"></param>
+        /// <returns></returns>
         private (WedgeId wai, int y) FindReferencePoint(ref Bitmap frame)
         {
             bool averageSet = false;
@@ -289,11 +240,36 @@ namespace APTSharp
             WedgeValues[wedgeId] = (WedgeValues[wedgeId].sum + average, WedgeValues[wedgeId].count + 1);
         }
 
+        /// <summary>
+        /// Fill the temperature buffer to prevent recalculation
+        /// </summary>
+        /// <param name="WedgeValues">The wedge values</param>
+        /// <param name="frame">The current frame</param>
+        /// <param name="tel">The telemetry structure to fill</param>
+        /// <returns></returns>
+        private double[] GetTemperatures(ref Dictionary<WedgeId, (int sum, int count)> WedgeValues, ref Bitmap frame, ref TelemetryFrame tel)
+        {
+            double tempT1 = ComputeBlackBodyTemperature(GetWedgeValue(WedgeValues, WedgeId.TT1), SatelliteConfigs.Configs[tel.Satellite].PTR_COEFFS[0]);
+            double tempT2 = ComputeBlackBodyTemperature(GetWedgeValue(WedgeValues, WedgeId.TT2), SatelliteConfigs.Configs[tel.Satellite].PTR_COEFFS[1]);
+            double tempT3 = ComputeBlackBodyTemperature(GetWedgeValue(WedgeValues, WedgeId.TT3), SatelliteConfigs.Configs[tel.Satellite].PTR_COEFFS[2]);
+            double tempT4 = ComputeBlackBodyTemperature(GetWedgeValue(WedgeValues, WedgeId.TT4), SatelliteConfigs.Configs[tel.Satellite].PTR_COEFFS[3]);
+            double cbb = ((int)GetWedgeValue(WedgeValues, WedgeId.TT1) + GetWedgeValue(WedgeValues, WedgeId.TT2) + GetWedgeValue(WedgeValues, WedgeId.TT3) + GetWedgeValue(WedgeValues, WedgeId.TT4)) / 4;
+            double avBlackBodyTemperature = (tempT1 + tempT2 + tempT3 + tempT4) / 4;
+            double[] ret = new double[frame.Width * frame.Height];
+
+            for (int y = 0; y < frame.Height; y++)
+            {
+                for (int x = 0; x < frame.Width; x++)
+                {
+                    ret[y * frame.Width + x] = ComputeTemperature(tel.Satellite, tel.ChId, frame.GetPixel(x, y).R, avBlackBodyTemperature, 209, cbb);
+                }
+            }
+            return ret;
+        }
+
         private Dictionary<WedgeId, (int sum, int count)> ReadWedges(ref Bitmap frame)
         {
             var reference = FindReferencePoint(ref frame);
-
-            // How many wedges up
             int upwedges = reference.y / TELEMETRY_HEIGHT;
             int yOffset = reference.y % TELEMETRY_HEIGHT;
             int currentWedgeLine = 0;
@@ -327,17 +303,22 @@ namespace APTSharp
             return WedgeValues;
         }
 
+
         /// <summary>
         /// This telemetry reader assumes that the satellite didn't change settings over all recorded frames
         /// </summary>
         /// <param name="frame"></param>
-        public void ReadTelemetry(ref Bitmap frame)
+        public TelemetryFrame ReadTelemetry(ref Bitmap frame)
         {
+            TelemetryFrame ret = new TelemetryFrame();
             byte supposedWhite = 0;
             byte supposedBlack = 255;
             byte supposedPt = 255;
             byte supposedID = 255;
             var WedgeValues = ReadWedges(ref frame);
+
+            // TODO Add automatic selection
+            ret.Satellite = SatelliteId.NOAA_15;
 
             supposedWhite = GetWedgeValue(WedgeValues, WedgeId.WMIW);
             supposedBlack = GetWedgeValue(WedgeValues, WedgeId.WMIZ);
@@ -347,11 +328,15 @@ namespace APTSharp
             WedgeValues = ReadWedges(ref frame);
             supposedPt = GetWedgeValue(WedgeValues, WedgeId.PT);
             supposedID = GetWedgeValue(WedgeValues, WedgeId.CID);
+            ret.PatchTemperature = GetPatchTemperature(GetWedgeValue(WedgeValues, WedgeId.PT));
+            ret.ChId = GetChannelID(GetWedgeValue(WedgeValues, WedgeId.CID));
+            ret.Temperatures =  GetTemperatures(ref WedgeValues, ref frame, ref ret);
             Console.WriteLine("Patch temperature after correction: " + GetPatchTemperature(supposedPt) + "K");
             Console.WriteLine("------------");
             Console.WriteLine("Supposed white {0}", supposedWhite);
             Console.WriteLine("Supposed black {0}", supposedBlack);
             Console.WriteLine("Supposed ChannelID For this image {0}", GetChannelID(supposedID));
+            return ret;
         }
     }
 }

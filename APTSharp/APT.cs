@@ -14,8 +14,9 @@ namespace APTSharp
 {
     public struct APTData
     {
-        public Bitmap ImageA;
-        public Bitmap ImageB;
+        public (Bitmap, TelemetryFrame) FrameA;
+        public (Bitmap, TelemetryFrame) FrameB;
+
         public Bitmap FullImage;
     }
 
