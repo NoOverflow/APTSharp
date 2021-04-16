@@ -1,0 +1,17 @@
+﻿<Window x:Class="Explorer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Explorer"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="1175" Width="1300" WindowStyle="None">
+    <Grid Background="#FF1D1D1D">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Image HorizontalAlignment="Left" Height="64" Margin="25,25,0,0" VerticalAlignment="Top" Width="64" Source="/neptune-planet.png"/>
+        <Label Content="Explorer" HorizontalAlignment="Left" Margin="115,36,0,0" VerticalAlignment="Top" FontFamily="Segoe UI" Foreground="White" FontSize="24"/>
+
+    </Grid>
+</Window>
