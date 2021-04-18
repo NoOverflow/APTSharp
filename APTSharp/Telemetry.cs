@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
+using System.Linq;
 
 namespace APTSharp
 {
@@ -95,6 +96,19 @@ namespace APTSharp
             { ChannelId.ID5, 159 }
         };
 
+        public static readonly Dictionary<WedgeId, byte> WID_TO_DIGV = new Dictionary<WedgeId, byte>()
+        {
+            { WedgeId.WMI1, 31 },
+            { WedgeId.WMI2, 63 },
+            { WedgeId.WMI3, 95 },
+            { WedgeId.WMI4, 127 },
+            { WedgeId.WMI5, 159 },
+            { WedgeId.WMI6, 191 },
+            { WedgeId.WMI7, 223 },
+            { WedgeId.WMIW, 255 },
+            { WedgeId.WMIZ, 0 }
+        };
+
         /// <summary>
         /// Get the patch temperature from the AVHRR 8-bit value
         /// </summary>
@@ -122,6 +136,37 @@ namespace APTSharp
                 }
             }
             return ret;
+        }
+
+        private (double A, double B) GetNormalisationCoeffs(Dictionary<WedgeId, (int sum, int count)> WedgeValues)
+        {
+            double wm1 = GetWedgeValue(WedgeValues, WedgeId.WMI1);
+            double wm2 = GetWedgeValue(WedgeValues, WedgeId.WMI2);
+            double wm3 = GetWedgeValue(WedgeValues, WedgeId.WMI3);
+            double wm4 = GetWedgeValue(WedgeValues, WedgeId.WMI4);
+            double wm5 = GetWedgeValue(WedgeValues, WedgeId.WMI5);
+            double wm6 = GetWedgeValue(WedgeValues, WedgeId.WMI6);
+            double wm7 = GetWedgeValue(WedgeValues, WedgeId.WMI7);
+            double wmw = GetWedgeValue(WedgeValues, WedgeId.WMIW);
+
+            double ewm1 = WID_TO_DIGV[WedgeId.WMI1];
+            double ewm2 = WID_TO_DIGV[WedgeId.WMI2];
+            double ewm3 = WID_TO_DIGV[WedgeId.WMI3];
+            double ewm4 = WID_TO_DIGV[WedgeId.WMI4];
+            double ewm5 = WID_TO_DIGV[WedgeId.WMI5];
+            double ewm6 = WID_TO_DIGV[WedgeId.WMI6];
+            double ewm7 = WID_TO_DIGV[WedgeId.WMI7];
+            double ewmw = WID_TO_DIGV[WedgeId.WMIW];
+
+            double SXY = (ewm1 * wm1 + ewm2 * wm2 + ewm3 * wm3 + ewm4 * wm4 + ewm5 * wm5 + ewm6 * wm6 + ewm7 * wm7 + ewmw * wmw);
+            double SX = WID_TO_DIGV.Sum(x => x.Value);
+            double SXSQ = (Math.Pow(ewm1, 2) + Math.Pow(ewm2, 2) + Math.Pow(ewm3, 2) + Math.Pow(ewm4, 2) + Math.Pow(ewm5, 2) + Math.Pow(ewm6, 2) + Math.Pow(ewm7, 2) + Math.Pow(ewmw, 2));
+            double SY = (wm1 + wm2 + wm3 + wm4 + wm5 + wm6 + wm7 + wmw);
+
+            double B = (8 * SXY - (SX * SY)) / (8 * SXSQ - Math.Pow(SX, 2));
+            double A = (SY - B * SX) / 8;
+
+            return (A, B);
         }
 
         private double ComputeBlackBodyTemperature(byte sensorValue, float[] coeffs)
@@ -316,21 +361,21 @@ namespace APTSharp
             byte supposedPt = 255;
             byte supposedID = 255;
             var WedgeValues = ReadWedges(ref frame);
+            var NormalisationCoeffs = GetNormalisationCoeffs(WedgeValues);
 
             // TODO Add automatic selection
             ret.Satellite = SatelliteId.NOAA_15;
-
             supposedWhite = GetWedgeValue(WedgeValues, WedgeId.WMIW);
             supposedBlack = GetWedgeValue(WedgeValues, WedgeId.WMIZ);
             supposedPt = GetWedgeValue(WedgeValues, WedgeId.PT);
             Console.WriteLine("Patch temperature before correction: " + GetPatchTemperature(supposedPt) + "K");
-            ColorCorrection.ColorCorrectBitmap(ref frame, supposedWhite, supposedBlack);
+            ColorCorrection.ColorCorrectBitmap(ref frame, NormalisationCoeffs.A, NormalisationCoeffs.B);
             WedgeValues = ReadWedges(ref frame);
             supposedPt = GetWedgeValue(WedgeValues, WedgeId.PT);
             supposedID = GetWedgeValue(WedgeValues, WedgeId.CID);
             ret.PatchTemperature = GetPatchTemperature(GetWedgeValue(WedgeValues, WedgeId.PT));
             ret.ChId = GetChannelID(GetWedgeValue(WedgeValues, WedgeId.CID));
-            ret.Temperatures =  GetTemperatures(ref WedgeValues, ref frame, ref ret);
+            //ret.Temperatures =  GetTemperatures(ref WedgeValues, ref frame, ref ret);
             Console.WriteLine("Patch temperature after correction: " + GetPatchTemperature(supposedPt) + "K");
             Console.WriteLine("------------");
             Console.WriteLine("Supposed white {0}", supposedWhite);
