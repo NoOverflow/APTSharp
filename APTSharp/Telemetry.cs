@@ -197,18 +197,21 @@ namespace APTSharp
         /// <param name="cs">The average space count</param>
         /// <param name="cbb">The average black body count</param>
         /// <returns></returns>
-        private double ComputeTemperature(SatelliteId id, ChannelId cid, byte sensorValue, double bbt, double cs, double cbb)
+        private double ComputeTemperature(SatelliteId id, ChannelId cid, byte sensorValue, double bbt, double cs, double cbb, double cra, double crb)
         {
-            double ce = ((sensorValue - 6.25f) / 0.8198f) * 4;
+            double ce = sensorValue * 4;
 
             // Not fucking safe
-            cs = ((cs - 6.25f) / 0.8198f) * 4;
+            // cs = ((cs - cra) / crb) * 4;
+            cs = cs * 4;
             // Not fucking safe
-            cbb = ((cbb - 6.25f) / 0.8198f) * 4;
+            // cbb = ((cbb - cra) / crb) * 4;
+            cbb = cbb * 4;
 
             // TODO WTF IS THIS, Error could come from here ig 
-            double nue = 927.0246f; // Absolutely not fucking safe
+            
             double nuc = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][0]; // Safe ?
+            double nue = nuc;// 927.0246f; // Absolutely not fucking safe
             double a = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][1]; // Safe ?
             double b = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][2]; // Safe ?
             double ns = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][3];    // Safe ?
@@ -230,7 +233,7 @@ namespace APTSharp
             double emte = ((double)C2 * nuc) / (Math.Log(1 + ((double)C1 * Math.Pow(nuc, 3) / ne)));
             double te = (emte - a) / b;
 
-            return te;
+            return te + 10.0f; // temporary fix
         }
 
         /// <summary>
@@ -259,7 +262,9 @@ namespace APTSharp
                     averageSet = true;
                 }
                 Console.WriteLine("Average line {0}: {1}", y, average);
-                if (oldAverage - average > 120)
+
+                // TODO REPLACE THIS ARBITRARY VALUE
+                if (oldAverage - average > 60)
                     return (WedgeId.WMIZ, y);
                 oldAverage = average;
             }
@@ -292,7 +297,7 @@ namespace APTSharp
         /// <param name="frame">The current frame</param>
         /// <param name="tel">The telemetry structure to fill</param>
         /// <returns></returns>
-        private double[] GetTemperatures(ref Dictionary<WedgeId, (int sum, int count)> WedgeValues, ref Bitmap frame, ref TelemetryFrame tel)
+        private double[] GetTemperatures(ref Dictionary<WedgeId, (int sum, int count)> WedgeValues, ref Bitmap frame, ref TelemetryFrame tel, double cra, double crb)
         {
             double tempT1 = ComputeBlackBodyTemperature(GetWedgeValue(WedgeValues, WedgeId.TT1), SatelliteConfigs.Configs[tel.Satellite].PTR_COEFFS[0]);
             double tempT2 = ComputeBlackBodyTemperature(GetWedgeValue(WedgeValues, WedgeId.TT2), SatelliteConfigs.Configs[tel.Satellite].PTR_COEFFS[1]);
@@ -306,11 +311,15 @@ namespace APTSharp
             {
                 for (int x = 0; x < frame.Width; x++)
                 {
-                    ret[y * frame.Width + x] = ComputeTemperature(tel.Satellite, tel.ChId, frame.GetPixel(x, y).R, avBlackBodyTemperature, 209, cbb);
+                    ret[y * frame.Width + x] = ComputeTemperature(tel.Satellite, tel.ChId, frame.GetPixel(x, y).R, avBlackBodyTemperature, SpaceCount, cbb, cra, crb); // this is a temporary fix
+                    // ret[y * frame.Width + x] = ComputeTemperature(tel.Satellite, tel.ChId, 90, avBlackBodyTemperature, SpaceCount, cbb, cra, crb); // this is a temporary fix
+                    // ret[y * frame.Width + x] = ComputeTemperature(tel.Satellite, tel.ChId, 151, avBlackBodyTemperature, SpaceCount, cbb, cra, crb); // this is a temporary fix
                 }
             }
             return ret;
         }
+
+        private static byte SpaceCount = 0;
 
         private Dictionary<WedgeId, (int sum, int count)> ReadWedges(ref Bitmap frame)
         {
@@ -321,6 +330,9 @@ namespace APTSharp
             WedgeId currentWedge = (WedgeId)((int)WedgeId.WMIZ - (upwedges % 16));
             Dictionary<WedgeId, (int sum, int count)> WedgeValues = new Dictionary<WedgeId, (int sum, int count)>();
 
+            long spSum = 0;
+            long spDiv = 0;
+
             for (int i = 0; i < 16; i++)
             {
                 WedgeValues[(WedgeId)i] = (0, 0);
@@ -329,12 +341,28 @@ namespace APTSharp
             {
                 int sum = 0;
                 byte average = 0;
+                
+                for (int x = 40; x < 45; x++)
+                {
+                    byte spValue = frame.GetPixel(x, y).R;
+
+                    // We substract minute values, as this will only be really relevant for B frames
+                    // TODO Get rid of this arbitrary value
+                    if (spValue > 50)
+                    {
+                        spSum += spValue;
+                        spDiv++;
+                    }
+                    
+                }
 
                 for (int x = frame.Width - 46; x < frame.Width - 1; x++)
                 {
                     sum += frame.GetPixel(x, y).R;
                 }
+
                 average = (byte)(sum / TELEMETRY_WIDTH);
+
                 //Console.WriteLine("Current Y = {0}", y);
                 AddTelemetryValue(ref WedgeValues, currentWedge, average);
                 currentWedgeLine++;
@@ -345,6 +373,7 @@ namespace APTSharp
                     currentWedgeLine = 0;
                 }
             }
+            SpaceCount = (byte)(spSum / spDiv);
             return WedgeValues;
         }
 
@@ -353,7 +382,7 @@ namespace APTSharp
         /// This telemetry reader assumes that the satellite didn't change settings over all recorded frames
         /// </summary>
         /// <param name="frame"></param>
-        public TelemetryFrame ReadTelemetry(ref Bitmap frame)
+        public TelemetryFrame ReadTelemetry(ref Bitmap frame, bool getTemperature)
         {
             TelemetryFrame ret = new TelemetryFrame();
             byte supposedWhite = 0;
@@ -364,7 +393,7 @@ namespace APTSharp
             var NormalisationCoeffs = GetNormalisationCoeffs(WedgeValues);
 
             // TODO Add automatic selection
-            ret.Satellite = SatelliteId.NOAA_15;
+            ret.Satellite = SatelliteId.NOAA_18;
             supposedWhite = GetWedgeValue(WedgeValues, WedgeId.WMIW);
             supposedBlack = GetWedgeValue(WedgeValues, WedgeId.WMIZ);
             supposedPt = GetWedgeValue(WedgeValues, WedgeId.PT);
@@ -375,7 +404,9 @@ namespace APTSharp
             supposedID = GetWedgeValue(WedgeValues, WedgeId.CID);
             ret.PatchTemperature = GetPatchTemperature(GetWedgeValue(WedgeValues, WedgeId.PT));
             ret.ChId = GetChannelID(GetWedgeValue(WedgeValues, WedgeId.CID));
-            //ret.Temperatures =  GetTemperatures(ref WedgeValues, ref frame, ref ret);
+
+            if (getTemperature)
+                ret.Temperatures = GetTemperatures(ref WedgeValues, ref frame, ref ret, NormalisationCoeffs.A, NormalisationCoeffs.B);
             Console.WriteLine("Patch temperature after correction: " + GetPatchTemperature(supposedPt) + "K");
             Console.WriteLine("------------");
             Console.WriteLine("Supposed white {0}", supposedWhite);

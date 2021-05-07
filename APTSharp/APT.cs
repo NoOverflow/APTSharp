@@ -56,10 +56,9 @@ namespace APTSharp
 
             foreach (var pair in TreatmentUnits)
                 samples = pair.unit.Treat(ref samples, pair.args);
-            var syncResult = Syncer.GetNextSync(ref samples, 0, Samplerate * 2);
+            var syncResult = Syncer.GetNextSync(ref samples, 0, Samplerate * 40);
             float[] lineData = new float[Samplerate / 2 + 1];
             Downsampler downsampler = new Downsampler();
-            FIRLowFilter fIRLowFilter = new FIRLowFilter();
             int syncHolder = syncResult.index;
 
             for (int yLine = 0; yLine < fullImage.Height; yLine++)
@@ -90,8 +89,11 @@ namespace APTSharp
                     ret.FrameB.frame.SetPixel(x, y, fullImage.GetPixel(x + 1040, y));
                 }
             }
-            // Reading telemetry will enhance the image quality, this is because it needs to get precise values to get temperature data
-            ret.FrameB.telemetry = new TelemetryReader().ReadTelemetry(ref ret.FrameB.frame);
+            // Reading telemetry will enhance the image quality, this is because it needs to get precise values to get temperature data        
+            ret.FrameB.telemetry = new TelemetryReader().ReadTelemetry(ref ret.FrameB.frame, true);
+            ret.FrameA.telemetry = new TelemetryReader().ReadTelemetry(ref ret.FrameA.frame, false);
+            ret.FrameA.frame.Save("Frame A.bmp");
+            ret.FrameB.frame.Save("Frame B.bmp");
             return ret;
         }
     }

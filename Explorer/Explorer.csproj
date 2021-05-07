@@ -8,10 +8,25 @@
 
   <ItemGroup>
     <None Remove="neptune-planet.png" />
+    <None Remove="testA.bmp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\APTSharp\APTSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="neptune-planet.png" />
+    <Resource Include="testA.bmp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Example\noaa15.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Example\noaa18.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

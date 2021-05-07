@@ -1,17 +1,37 @@
-﻿<Window x:Class="Explorer.MainWindow"
+﻿<Window
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Explorer"
+        xmlns:ViewModel="clr-namespace:Explorer.ViewModel" x:Class="Explorer.MainWindow"
         mc:Ignorable="d"
-        Title="MainWindow" Height="1175" Width="1300" WindowStyle="None">
+        Title="Explorer" Height="800" Width="1333" MinWidth="1300" Loaded="Window_Loaded">
+    <Window.DataContext>
+        <ViewModel:MainViewModel/>
+    </Window.DataContext>
     <Grid Background="#FF1D1D1D">
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <Image HorizontalAlignment="Left" Height="64" Margin="25,25,0,0" VerticalAlignment="Top" Width="64" Source="/neptune-planet.png"/>
         <Label Content="Explorer" HorizontalAlignment="Left" Margin="115,36,0,0" VerticalAlignment="Top" FontFamily="Segoe UI" Foreground="White" FontSize="24"/>
+        <ScrollViewer Margin="260,0,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+            <Canvas Width="{Binding ActualWidth, ElementName=NoaaImage}" Height="{Binding ActualHeight, ElementName=NoaaImage}" IsHitTestVisible="False" >
+                <Canvas.Background>
+                    <VisualBrush>
+                        <VisualBrush.Visual>
+                            <Image MouseMove="NoaaImage_MouseMove" x:Name="NoaaImage" Stretch="None" HorizontalAlignment="Right" Source="{Binding CurrentImage}"/>
+                        </VisualBrush.Visual>
+                    </VisualBrush>
+                </Canvas.Background>
+            </Canvas>
+        </ScrollViewer>
+        <Label x:Name="TemperatureLabel" Content="Temperature: " HorizontalAlignment="Left" Margin="25,122,0,0" VerticalAlignment="Top" Width="200" Foreground="White" FontSize="20" Height="92"/>
+        <Button x:Name="AButton" Content="A" Margin="0,269,1260,0" BorderBrush="{x:Null}" Background="{x:Null}" FontSize="24" Foreground="White" Click="AButton_Click" HorizontalAlignment="Right" Width="48" Height="50" VerticalAlignment="Top"/>
+        <Button x:Name="BButton" Content="B" HorizontalAlignment="Right" Margin="0,269,1198,0" Width="48" BorderBrush="{x:Null}" Background="{x:Null}" FontSize="24" Foreground="White" Click="BButton_Click" Height="50" VerticalAlignment="Top"/>
+        <Button x:Name="ABButton" Content="AB" HorizontalAlignment="Left" Margin="153,269,0,0" Width="48" BorderBrush="{x:Null}" Background="{x:Null}" FontSize="24" Foreground="White" Click="ABButton_Click" Height="50" VerticalAlignment="Top"/>
+        <Button x:Name="ColorCorrectButton" Content="Color Correct" HorizontalAlignment="Left" Margin="25,0,0,0" VerticalAlignment="Center" Width="186" Height="70" Background="{x:Null}" Foreground="White" FontSize="24" Click="ColorCorrectButton_Click"/>
 
     </Grid>
 </Window>

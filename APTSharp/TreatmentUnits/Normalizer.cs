@@ -15,7 +15,6 @@ namespace APTSharp.TreatmentUnits
 
             for (int i = 0; i < data.Length; i++)
             {
-                // We substract the min value to get better blacks
                 data[i] = (data[i] - min) / span; 
             }
             return (data);
