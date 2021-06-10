@@ -56,6 +56,7 @@ namespace Explorer
             int height = srs.PixelHeight;
             int stride = width * ((srs.Format.BitsPerPixel + 7) / 8);
             IntPtr ptr = IntPtr.Zero;
+
             try
             {
                 ptr = Marshal.AllocHGlobal(height * stride);
@@ -95,17 +96,18 @@ namespace Explorer
 
         private void NoaaImage_MouseMove(object sender, MouseEventArgs e)
         {
-            var position = e.GetPosition(NoaaImage);
+            var position = e.GetPosition(ScrollViewer);
 
-            if (Temperatures == null || (position.Y * NoaaImage.Width + position.X >= Temperatures.Length))
+            position.Y += ScrollViewer.VerticalOffset;
+            if (Temperatures == null || (position.Y * 1040 + position.X >= Temperatures.Length))
             {
                 return;
             }
-            double kelTemp = Temperatures[(int)position.Y * (int)NoaaImage.Width + (int)position.X];
+            double kelTemp = Temperatures[(int)position.Y * (int)1040 + (int)position.X];
 
             if (kelTemp == Double.NaN || kelTemp.ToString("F2") == "NaN")
                 kelTemp = 0.0f;
-            TemperatureLabel.Content = String.Format("Temperature:\n{0}K ({1}°C)", kelTemp.ToString("F2"), (kelTemp - 273.15f).ToString("F2"));
+            TemperatureLabel.Content = String.Format("Temperature:\n{0}K ({1}°C)\n(X={2} Y={3})", kelTemp.ToString("F2"), (kelTemp - 273.15f).ToString("F2"), position.X, position.Y);
                 
         }
 

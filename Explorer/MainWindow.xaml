@@ -16,12 +16,12 @@
         </Grid.ColumnDefinitions>
         <Image HorizontalAlignment="Left" Height="64" Margin="25,25,0,0" VerticalAlignment="Top" Width="64" Source="/neptune-planet.png"/>
         <Label Content="Explorer" HorizontalAlignment="Left" Margin="115,36,0,0" VerticalAlignment="Top" FontFamily="Segoe UI" Foreground="White" FontSize="24"/>
-        <ScrollViewer Margin="260,0,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-            <Canvas Width="{Binding ActualWidth, ElementName=NoaaImage}" Height="{Binding ActualHeight, ElementName=NoaaImage}" IsHitTestVisible="False" >
+        <ScrollViewer x:Name="ScrollViewer" MouseMove="NoaaImage_MouseMove" Margin="293,0,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" MinWidth="1040" MaxWidth="1040" Width="1040">
+            <Canvas  Width="{Binding ActualWidth, ElementName=NoaaImage}" Height="{Binding ActualHeight, ElementName=NoaaImage}" >
                 <Canvas.Background>
                     <VisualBrush>
                         <VisualBrush.Visual>
-                            <Image MouseMove="NoaaImage_MouseMove" x:Name="NoaaImage" Stretch="None" HorizontalAlignment="Right" Source="{Binding CurrentImageSource}"/>
+                            <Image x:Name="NoaaImage" Stretch="None" HorizontalAlignment="Right" Source="{Binding CurrentImageSource}"/>
                         </VisualBrush.Visual>
                     </VisualBrush>
                 </Canvas.Background>
