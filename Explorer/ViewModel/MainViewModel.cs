@@ -14,14 +14,30 @@ namespace Explorer.ViewModel
         public Bitmap ImageB { get; set; }
         public Bitmap ImageAB { get; set; }
 
-        ImageSource _CurrentImage;
-        public ImageSource CurrentImage
+        public bool IsCurrentColorCorrected { get; set; }
+
+        public bool IsCurrentThermalCorrected { get; set; }
+
+        /// <summary>
+        /// Frame A Color Corrected (False)
+        /// </summary>
+        public Bitmap ImageACC { get; set; }
+
+        /// <summary>
+        /// Frame A Thermal Corrected Image
+        /// </summary>
+        public Bitmap ImageATC { get; set; } 
+
+        public Bitmap CurrentImage { get; set; }
+
+        ImageSource _CurrentImageSource;
+        public ImageSource CurrentImageSource
         {
-            get { return _CurrentImage; }
+            get { return _CurrentImageSource; }
             set
             {
-                _CurrentImage = value;
-                OnPropertyChanged("CurrentImage");
+                _CurrentImageSource = value;
+                OnPropertyChanged("CurrentImageSource");
             }   
         }
 

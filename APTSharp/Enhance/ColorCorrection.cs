@@ -31,6 +31,35 @@ namespace APTSharp.Enhance
 
         }
 
+        private static Color ThermalRainbow(double ratio)
+        {
+            int normalized = (int)(ratio * 256 * 6);
+            int x = normalized % 256;
+            int red = 0, grn = 0, blu = 0;
+
+            switch (normalized / 256) {
+                case 0: red = 255; grn = x; blu = 0; break;
+                case 1: red = 255 - x; grn = 255; blu = 0; break;
+                case 2: red = 0; grn = 255; blu = x; break;
+                case 3: red = 0; grn = 255 - x; blu = 255; break;
+                case 4: red = x; grn = 0; blu = 255; break;
+                case 5: red = 255; grn = 0; blu = 255 - x; break;
+            }
+            return Color.FromArgb(red, grn, blu);
+        }
+
+        public static void ThermalColors(ref Bitmap imageA, ref Bitmap imageB)
+        {
+            for (int y = 0; y < imageA.Height; y++)
+            {
+                for (int x = 84; x < 994; x++)
+                {
+                    imageA.SetPixel(x, y, 
+                        ThermalRainbow(imageB.GetPixel(x, y).R / 255.0f));
+                }
+            }
+        }
+
         public static void FalseColors(ref Bitmap imageA, ref Bitmap imageB)
         {
             byte watTreshold = 50;

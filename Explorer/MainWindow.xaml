@@ -21,17 +21,19 @@
                 <Canvas.Background>
                     <VisualBrush>
                         <VisualBrush.Visual>
-                            <Image MouseMove="NoaaImage_MouseMove" x:Name="NoaaImage" Stretch="None" HorizontalAlignment="Right" Source="{Binding CurrentImage}"/>
+                            <Image MouseMove="NoaaImage_MouseMove" x:Name="NoaaImage" Stretch="None" HorizontalAlignment="Right" Source="{Binding CurrentImageSource}"/>
                         </VisualBrush.Visual>
                     </VisualBrush>
                 </Canvas.Background>
             </Canvas>
         </ScrollViewer>
         <Label x:Name="TemperatureLabel" Content="Temperature: " HorizontalAlignment="Left" Margin="25,122,0,0" VerticalAlignment="Top" Width="200" Foreground="White" FontSize="20" Height="92"/>
-        <Button x:Name="AButton" Content="A" Margin="0,269,1260,0" BorderBrush="{x:Null}" Background="{x:Null}" FontSize="24" Foreground="White" Click="AButton_Click" HorizontalAlignment="Right" Width="48" Height="50" VerticalAlignment="Top"/>
-        <Button x:Name="BButton" Content="B" HorizontalAlignment="Right" Margin="0,269,1198,0" Width="48" BorderBrush="{x:Null}" Background="{x:Null}" FontSize="24" Foreground="White" Click="BButton_Click" Height="50" VerticalAlignment="Top"/>
-        <Button x:Name="ABButton" Content="AB" HorizontalAlignment="Left" Margin="153,269,0,0" Width="48" BorderBrush="{x:Null}" Background="{x:Null}" FontSize="24" Foreground="White" Click="ABButton_Click" Height="50" VerticalAlignment="Top"/>
-        <Button x:Name="ColorCorrectButton" Content="Color Correct" HorizontalAlignment="Left" Margin="25,0,0,0" VerticalAlignment="Center" Width="186" Height="70" Background="{x:Null}" Foreground="White" FontSize="24" Click="ColorCorrectButton_Click"/>
+        <Button x:Name="AButton" Content="A" Margin="33,0,0,35" BorderBrush="{x:Null}" Background="{x:Null}" FontSize="24" Foreground="White" Click="AButton_Click" HorizontalAlignment="Left" Width="48" Height="50" VerticalAlignment="Bottom"/>
+        <Button x:Name="BButton" Content="B" HorizontalAlignment="Left" Margin="101,0,0,35" Width="48" BorderBrush="{x:Null}" Background="{x:Null}" FontSize="24" Foreground="White" Click="BButton_Click" Height="50" VerticalAlignment="Bottom"/>
+        <Button x:Name="ABButton" Content="AB" HorizontalAlignment="Left" Margin="170,0,0,35" Width="48" BorderBrush="{x:Null}" Background="{x:Null}" FontSize="24" Foreground="White" Click="ABButton_Click" Height="50" VerticalAlignment="Bottom"/>
+        <CheckBox x:Name="ColorCorrectCheckbox" Content="Color Correct (Image A)" HorizontalAlignment="Left" Margin="25,639,0,0" VerticalAlignment="Top" Foreground="White" IsChecked="{Binding IsCurrentColorCorrected}" Click="CheckBox_Checked" Width="160"/>
+        <CheckBox x:Name="ThermalCorrectCheckbox" Content="Thermal Correct (Image A)" HorizontalAlignment="Left" Margin="25,619,0,0" VerticalAlignment="Top" Foreground="White" IsChecked="{Binding IsCurrentThermalCorrected}" Click="ThermalCorrectCheckBox_Clicked" Width="160"/>
+        <Button x:Name="SaveButton" Content="Save current image ..." Margin="33,0,0,200" BorderBrush="#33FFFFFF" Background="{x:Null}" FontSize="16" Foreground="White" HorizontalAlignment="Left" Width="185" Height="50" VerticalAlignment="Bottom" Click="SaveButton_Click" />
 
     </Grid>
 </Window>
