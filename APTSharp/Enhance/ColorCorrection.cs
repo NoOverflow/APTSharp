@@ -48,8 +48,25 @@ namespace APTSharp.Enhance
             return Color.FromArgb(red, grn, blu);
         }
 
-        public static void ThermalColors(ref Bitmap imageA, ref Bitmap imageB)
+        public static void WildfireColors(ref StatusContext ctx, ref Bitmap imageA, ref Bitmap imageB, double[] temps)
         {
+            ctx.UpdateCurrentState(Status.CREATING_THERMAL_COLORS);
+            for (int y = 0; y < imageA.Height; y++)
+            {
+                for (int x = 84; x < 994; x++)
+                {
+                    if (temps[y * imageA.Width + x] > 306.15f)
+                    {
+                        imageA.SetPixel(x, y,
+                            ThermalRainbow(imageB.GetPixel(x, y).R / 255.0f));
+                    }
+                }
+            }
+        }
+
+        public static void ThermalColors(ref StatusContext ctx, ref Bitmap imageA, ref Bitmap imageB)
+        {
+            ctx.UpdateCurrentState(Status.CREATING_THERMAL_COLORS);
             for (int y = 0; y < imageA.Height; y++)
             {
                 for (int x = 84; x < 994; x++)
@@ -60,8 +77,9 @@ namespace APTSharp.Enhance
             }
         }
 
-        public static void FalseColors(ref Bitmap imageA, ref Bitmap imageB)
+        public static void FalseColors(ref StatusContext ctx, ref Bitmap imageA, ref Bitmap imageB)
         {
+            ctx.UpdateCurrentState(Status.CREATING_FALSE_COLORS);
             byte watTreshold = 50;
             byte cldTreshold = 110;
             byte vegTreshold = 140;

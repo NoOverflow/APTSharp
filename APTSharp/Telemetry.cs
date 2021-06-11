@@ -86,6 +86,8 @@ namespace APTSharp
         /// </summary>
         public const int TELEMETRY_HEIGHT = 8;
 
+        private StatusContext StatusContext;
+
         public static readonly Dictionary<ChannelId, byte> CHANNEL_ID_TO_DIGV = new Dictionary<ChannelId, byte>()
         {
             { ChannelId.ID1, 31 },
@@ -140,6 +142,7 @@ namespace APTSharp
 
         private (double A, double B) GetNormalisationCoeffs(Dictionary<WedgeId, (int sum, int count)> WedgeValues)
         {
+            this.StatusContext.UpdateCurrentState(Status.GETTING_NORMAL_COEFFS);
             double wm1 = GetWedgeValue(WedgeValues, WedgeId.WMI1);
             double wm2 = GetWedgeValue(WedgeValues, WedgeId.WMI2);
             double wm3 = GetWedgeValue(WedgeValues, WedgeId.WMI3);
@@ -171,6 +174,7 @@ namespace APTSharp
 
         private double ComputeBlackBodyTemperature(byte sensorValue, float[] coeffs)
         {
+            this.StatusContext.UpdateCurrentState(Status.COMPUTING_BBT);
             // The value is shifted by two as coefficients are given for 10 bits HRPT telemetry
             int corrected10bSV = sensorValue << 2;
 
@@ -199,41 +203,29 @@ namespace APTSharp
         /// <returns></returns>
         private double ComputeTemperature(SatelliteId id, ChannelId cid, byte sensorValue, double bbt, double cs, double cbb, double cra, double crb)
         {
+            StatusContext.UpdateCurrentState(Status.COMPUTING_TEMP);
             double ce = sensorValue * 4;
 
-            // Not fucking safe
-            // cs = ((cs - cra) / crb) * 4;
             cs = cs * 4;
-            // Not fucking safe
-            // cbb = ((cbb - cra) / crb) * 4;
             cbb = cbb * 4;
 
-            // TODO WTF IS THIS, Error could come from here ig 
-            
-            double nuc = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][0]; // Safe ?
+            double nuc = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][0];
             double nue = nuc;// 927.0246f; // Absolutely not fucking safe
-            double a = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][1]; // Safe ?
-            double b = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][2]; // Safe ?
-            double ns = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][3];    // Safe ?
+            double a = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][1]; 
+            double b = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][2]; 
+            double ns = SatelliteConfigs.Configs[id].EFBBT_COEFFS[cid][3];  
 
-            // Safe ?
             double efbbt = a + b * bbt;
-
-            
             double nbb = ((double)C1 * Math.Pow(nue, 3)) / (Math.Exp((double)C2 * nuc / efbbt) - 1);
-
-            // Problem is around here ig nigga tf
             double nlin = ns + (nbb - ns) * ((cs - ce) / (cs - cbb));
-
             double ncor = SatelliteConfigs.Configs[id].NL_RAD_CORR_COEFFS[cid][0] + 
                           SatelliteConfigs.Configs[id].NL_RAD_CORR_COEFFS[cid][1] * nlin + 
                           SatelliteConfigs.Configs[id].NL_RAD_CORR_COEFFS[cid][2] * Math.Pow(nlin, 2);
             double ne = nlin + ncor;
-
             double emte = ((double)C2 * nuc) / (Math.Log(1 + ((double)C1 * Math.Pow(nuc, 3) / ne)));
             double te = (emte - a) / b;
 
-            return te + 10.0f; // temporary fix
+            return te + 10.0f;
         }
 
         /// <summary>
@@ -311,9 +303,7 @@ namespace APTSharp
             {
                 for (int x = 0; x < frame.Width; x++)
                 {
-                    ret[y * frame.Width + x] = ComputeTemperature(tel.Satellite, tel.ChId, frame.GetPixel(x, y).R, avBlackBodyTemperature, SpaceCount, cbb, cra, crb); // this is a temporary fix
-                    // ret[y * frame.Width + x] = ComputeTemperature(tel.Satellite, tel.ChId, 90, avBlackBodyTemperature, SpaceCount, cbb, cra, crb); // this is a temporary fix
-                    // ret[y * frame.Width + x] = ComputeTemperature(tel.Satellite, tel.ChId, 151, avBlackBodyTemperature, SpaceCount, cbb, cra, crb); // this is a temporary fix
+                    ret[y * frame.Width + x] = ComputeTemperature(tel.Satellite, tel.ChId, frame.GetPixel(x, y).R, avBlackBodyTemperature, SpaceCount, cbb, cra, crb); 
                 }
             }
             return ret;
@@ -323,6 +313,7 @@ namespace APTSharp
 
         private Dictionary<WedgeId, (int sum, int count)> ReadWedges(ref Bitmap frame)
         {
+            StatusContext.UpdateCurrentState(Status.READING_RAW_WEDGES);
             var reference = FindReferencePoint(ref frame);
             int upwedges = reference.y / TELEMETRY_HEIGHT;
             int yOffset = reference.y % TELEMETRY_HEIGHT;
@@ -353,17 +344,12 @@ namespace APTSharp
                         spSum += spValue;
                         spDiv++;
                     }
-                    
                 }
-
                 for (int x = frame.Width - 46; x < frame.Width - 1; x++)
                 {
                     sum += frame.GetPixel(x, y).R;
                 }
-
                 average = (byte)(sum / TELEMETRY_WIDTH);
-
-                //Console.WriteLine("Current Y = {0}", y);
                 AddTelemetryValue(ref WedgeValues, currentWedge, average);
                 currentWedgeLine++;
                 if (currentWedgeLine != 0 && currentWedgeLine % (TELEMETRY_HEIGHT) == 0)
@@ -382,36 +368,20 @@ namespace APTSharp
         /// This telemetry reader assumes that the satellite didn't change settings over all recorded frames
         /// </summary>
         /// <param name="frame"></param>
-        public TelemetryFrame ReadTelemetry(ref Bitmap frame, bool getTemperature)
+        public TelemetryFrame ReadTelemetry(ref StatusContext statusContext, SatelliteId id, ref Bitmap frame, bool getTemperature)
         {
+            this.StatusContext = statusContext;
             TelemetryFrame ret = new TelemetryFrame();
-            byte supposedWhite = 0;
-            byte supposedBlack = 255;
-            byte supposedPt = 255;
-            byte supposedID = 255;
             var WedgeValues = ReadWedges(ref frame);
             var NormalisationCoeffs = GetNormalisationCoeffs(WedgeValues);
 
-            // TODO Add automatic selection
-            ret.Satellite = SatelliteId.NOAA_18;
-            supposedWhite = GetWedgeValue(WedgeValues, WedgeId.WMIW);
-            supposedBlack = GetWedgeValue(WedgeValues, WedgeId.WMIZ);
-            supposedPt = GetWedgeValue(WedgeValues, WedgeId.PT);
-            Console.WriteLine("Patch temperature before correction: " + GetPatchTemperature(supposedPt) + "K");
+            ret.Satellite = id;
             ColorCorrection.ColorCorrectBitmap(ref frame, NormalisationCoeffs.A, NormalisationCoeffs.B);
             WedgeValues = ReadWedges(ref frame);
-            supposedPt = GetWedgeValue(WedgeValues, WedgeId.PT);
-            supposedID = GetWedgeValue(WedgeValues, WedgeId.CID);
             ret.PatchTemperature = GetPatchTemperature(GetWedgeValue(WedgeValues, WedgeId.PT));
             ret.ChId = GetChannelID(GetWedgeValue(WedgeValues, WedgeId.CID));
-
             if (getTemperature)
                 ret.Temperatures = GetTemperatures(ref WedgeValues, ref frame, ref ret, NormalisationCoeffs.A, NormalisationCoeffs.B);
-            Console.WriteLine("Patch temperature after correction: " + GetPatchTemperature(supposedPt) + "K");
-            Console.WriteLine("------------");
-            Console.WriteLine("Supposed white {0}", supposedWhite);
-            Console.WriteLine("Supposed black {0}", supposedBlack);
-            Console.WriteLine("Supposed ChannelID For this image {0}", GetChannelID(supposedID));
             return ret;
         }
     }

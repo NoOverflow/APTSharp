@@ -46,16 +46,19 @@ namespace APTSharp
             return (buffer, (reader.TotalTime.TotalSeconds + 1));
         }
 
-        public APTData Parse(string path)
+        public APTData Parse(string path, SatelliteId id, ref StatusContext statusContext)
         {
             APTData ret = new APTData();
+            statusContext.UpdateCurrentState(Status.SOUND_PARSING);
             var wavData = ReadWAVData(path);
             float[] samples = wavData.samples;
             Bitmap fullImage = new Bitmap(2080, (int)(Math.Floor(samples.Length / (float)(Samplerate / 2)) - 1));
             byte grayscaleValue = 0;
 
+            statusContext.UpdateCurrentState(Status.SOUND_CLEANING);
             foreach (var pair in TreatmentUnits)
                 samples = pair.unit.Treat(ref samples, pair.args);
+            statusContext.UpdateCurrentState(Status.SYNCING);
             var syncResult = Syncer.GetNextSync(ref samples, 0, Samplerate * 40);
             float[] lineData = new float[Samplerate / 2 + 1];
             Downsampler downsampler = new Downsampler();
@@ -65,6 +68,7 @@ namespace APTSharp
             {
                 if (syncHolder + Samplerate / 2 + 1 >= samples.Length)
                     break;
+                statusContext.UpdateCurrentState(Status.SOUND_CLEANING);
                 Array.Copy(samples, syncHolder, lineData, 0, Samplerate / 2 + 1); 
                 var downsampledData = downsampler.Treat(ref lineData, new dynamic[] { Samplerate / (float)4160 });
                 for (int x = 0; x < fullImage.Width; x++)
@@ -72,6 +76,7 @@ namespace APTSharp
                     grayscaleValue = (byte)(downsampledData[x] * 255.0f);
                     fullImage.SetPixel(x, yLine, Color.FromArgb(grayscaleValue, grayscaleValue, grayscaleValue));
                 }
+                statusContext.UpdateCurrentState(Status.SYNCING);
                 syncResult = Syncer.GetNextSync(ref samples, syncHolder + (Samplerate / 2) - 20, 40);
                 if (syncResult.index < 0)
                     syncHolder += Samplerate / 2;
@@ -90,8 +95,8 @@ namespace APTSharp
                 }
             }
             // Reading telemetry will enhance the image quality, this is because it needs to get precise values to get temperature data        
-            ret.FrameB.telemetry = new TelemetryReader().ReadTelemetry(ref ret.FrameB.frame, true);
-            ret.FrameA.telemetry = new TelemetryReader().ReadTelemetry(ref ret.FrameA.frame, false);
+            ret.FrameB.telemetry = new TelemetryReader().ReadTelemetry(ref statusContext, id, ref ret.FrameB.frame, true);
+            ret.FrameA.telemetry = new TelemetryReader().ReadTelemetry(ref statusContext, id, ref ret.FrameA.frame, false);
             ret.FrameA.frame.Save("Frame A.bmp");
             ret.FrameB.frame.Save("Frame B.bmp");
             return ret;

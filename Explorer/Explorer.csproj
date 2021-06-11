@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="826%282%29.png" />
     <None Remove="neptune-planet.png" />
     <None Remove="testA.bmp" />
   </ItemGroup>
@@ -16,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="826(2).png" />
     <Resource Include="neptune-planet.png" />
     <Resource Include="testA.bmp" />
   </ItemGroup>

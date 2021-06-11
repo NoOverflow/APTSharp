@@ -14,9 +14,11 @@ namespace Explorer.ViewModel
         public Bitmap ImageB { get; set; }
         public Bitmap ImageAB { get; set; }
 
+        public double[] Temperatures { get; set; }
         public bool IsCurrentColorCorrected { get; set; }
 
         public bool IsCurrentThermalCorrected { get; set; }
+        public bool IsCurrentFire { get; set; }
 
         /// <summary>
         /// Frame A Color Corrected (False)
@@ -27,6 +29,7 @@ namespace Explorer.ViewModel
         /// Frame A Thermal Corrected Image
         /// </summary>
         public Bitmap ImageATC { get; set; } 
+        public Bitmap ImageFire { get; set; } 
 
         public Bitmap CurrentImage { get; set; }
 

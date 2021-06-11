@@ -8,7 +8,8 @@ namespace APTSharpConsole
     {
         static void Main(string[] args)
         {
-            var ret = new APTSharp.APT().Parse("Example/noaa15.wav");
+            StatusContext ctx = new StatusContext();
+            var ret = new APTSharp.APT().Parse("Example/noaa15.wav", SatelliteId.NOAA_15, ref ctx);
 
             ret.FullImage.Save("testAB.bmp");
             ret.FrameB.frame.Save("testA.bmp");
